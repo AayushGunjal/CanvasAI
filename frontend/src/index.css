@@ -1,0 +1,14 @@
+.app {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  padding: 20px;
+  background-color: #eee8e8;
+  min-height: 100vh;
+}
+
+/* Ensure each card has some space around it */
+.author-card {
+  margin: 10px;
+}
