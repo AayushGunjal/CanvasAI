@@ -29,7 +29,7 @@ const DrawingApp = () => {
             canvas.height = window.innerHeight - 100;
             ctx.lineCap = 'round';
             ctx.lineWidth = 3;
-            ctx.fillStyle = 'black';
+            ctx.fillStyle = 'white';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
@@ -131,7 +131,7 @@ const DrawingApp = () => {
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = 'black';
+        ctx.fillStyle = 'white';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         setLatexExpression('');
     };
@@ -198,7 +198,7 @@ const DrawingApp = () => {
 
     return (
         <div className="relative w-full h-screen bg-gray-900 overflow-hidden">
-            <div className="absolute top-0 left-0 z-10 p-4 space-x-4 flex flex-wrap items-center">
+        <div className="absolute bottom-0 left-0 z-10 p-4 space-x-4 flex flex-wrap items-center">
                 <Button onClick={resetCanvas} className="bg-red-500 text-white">
                     Reset
                 </Button>
@@ -207,7 +207,7 @@ const DrawingApp = () => {
                 </Button>
             </div>
 
-            <div className="absolute top-16 left-0 z-10 p-4 space-x-4 flex flex-col md:flex-row items-center">
+            <div className="absolute bottom-16 left-0 z-10 p-4 space-x-4 flex flex-col md:flex-row items-center">
                 <div className="flex space-x-2 overflow-x-auto">
                     {['white', 'red', 'green', 'blue', 'yellow', 'purple'].map((clr) => (
                         <div
