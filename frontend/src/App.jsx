@@ -106,7 +106,8 @@ const DrawingApp = () => {
         const currentPos = getPosition(e);
 
         if (isEraserActive) {
-            ctx.globalCompositeOperation = 'destination-out';
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.fillStyle = 'white';
             ctx.beginPath();
             ctx.arc(currentPos.x, currentPos.y, eraserSize / 2, 0, Math.PI * 2, false);
             ctx.fill();
@@ -130,7 +131,6 @@ const DrawingApp = () => {
     const resetCanvas = () => {
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = 'white';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         setLatexExpression('');
@@ -144,9 +144,28 @@ const DrawingApp = () => {
             const genAI = new GoogleGenerativeAI("AIzaSyDHzxPkKlgKzBtNX9iYWwqsyJexp6rROPM");
             const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-            const prompt = `You have been given an image with some mathematical expressions, equations, or graphical problems, and you need to solve them In details explain every thing how to solve that question and give them the solution. Note: Use the PEMDAS rule for solving mathematical expressions. PEMDAS stands for the Priority Order: Parentheses, Exponents, Multiplication and Division (from left to right), Addition and Subtraction (from left to right). Parentheses have the highest priority, followed by Exponents, then Multiplication and Division, and lastly Addition and Subtraction. For example: Q. 2 + 3 * 4 (3 * 4) => 12, 2 + 12 = 14. Q. 2 + 3 + 5 * 4 - 8 / 2 5 * 4 => 20, 8 / 2 => 4, 2 + 3 => 5, 5 + 20 => 25, 25 - 4 => 21. YOU CAN HAVE FIVE TYPES OF EQUATIONS/EXPRESSIONS IN THIS IMAGE, AND ONLY ONE CASE SHALL APPLY EVERY TIME: Following are the cases: 1. Simple mathematical expressions like 2 + 2, 3 * 4, 5 / 6, 7 - 8, etc.: In this case, solve and return the answer in the format of a LIST OF ONE DICT [{"expr": given expression, "result": calculated answer}]. 2. Set of Equations like x^2 + 2x + 1 = 0, 3y + 4x = 0, 5x^2 + 6y + 7 = 12, etc.: In this case, solve for the given variable, and the format should be a COMMA SEPARATED LIST OF DICTS, with dict 1 as {"expr": "x", "result": 2, "assign": True} and dict 2 as {"expr": "y", "result": 5, "assign": True}.
-             This example assumes x was calculated as 2, and y as 5. Include as many dicts as there are variables. 3. Assigning values to variables like x = 4, y = 5, z = 6, etc.: In this case, assign values to variables and return another key in the dict called {"assign": True}, keeping the variable as 'expr' and the value as 'result' in the original dictionary. RETURN AS A LIST OF DICTS. 4. Analyzing Graphical Math problems, which are word problems represented in drawing form, such as cars colliding, trigonometric problems, problems on the Pythagorean theorem, adding runs from a cricket wagon wheel, etc.
-              These will have a drawing representing some scenario and accompanying information with the image. PAY CLOSE ATTENTION TO DIFFERENT COLORS FOR THESE PROBLEMS. You need to return the answer in the format of a LIST OF ONE DICT [{"expr": given expression, "result": calculated answer}]. 5. Detecting Abstract Concepts that a drawing might show, such as love, hate, jealousy, patriotism, or a historic reference to war, invention, discovery, quote, etc. USE THE SAME FORMAT AS OTHERS TO RETURN THE ANSWER, where 'expr' will be the explanation of the drawing, and 'result' will be the abstract concept. Analyze the equation or expression in this image and return the answer according to the given rules: Make sure to use extra backslashes for escape characters like  etc. Here is a dictionary of user-assigned variables. If the given expression has any of these variables, use its actual value from this dictionary accordingly: {}. DO NOT USE BACKTICKS OR MARKDOWN FORMATTING. PROPERLY QUOTE THE KEYS AND VALUES IN THE DICTIONARY FOR EASIER PARSING WITH Python's ast.literal_eval.`;
+            const prompt = `Analyze the image and provide:
+
+            1. For math problems:
+               - Show step-by-step solution
+               - Include final answer
+               - Explain each step briefly
+               - Format example:
+                 • Problem: 2x + 5 = 15
+                 • Step 1: Subtract 5 from both sides → 2x = 10
+                 • Step 2: Divide both sides by 2 → x = 5
+                 • Solution: x = 5
+
+            2. For other content:
+               - Key information with brief explanations
+               - Use bullet points
+               - Keep explanations concise
+
+            3. General rules:
+               - Be clear and methodical for math
+               - Keep other responses brief
+               - Structure information logically
+            `;
 
             const result = await model.generateContent([
                 prompt,
@@ -197,89 +216,124 @@ const DrawingApp = () => {
     };
 
     return (
-        <div className="relative w-full h-screen bg-gray-900 overflow-hidden">
-        <div className="absolute bottom-0 left-0 z-10 p-4 space-x-4 flex flex-wrap items-center">
-                <Button onClick={resetCanvas} className="bg-red-500 text-white">
-                    Reset
-                </Button>
-                <Button onClick={processImage} className="bg-green-500 text-white">
-                    Process
-                </Button>
+        <div className="relative w-full h-screen bg-gray-900 flex flex-col">
+            {/* Top Bar */}
+            <div className="bg-gray-800 p-2 flex justify-between items-center">
+                <h1 className="text-white text-xl font-bold">Canvas AI</h1>
+                <div className="flex space-x-2">
+                    <Button onClick={resetCanvas} className="bg-red-500 hover:bg-red-600 text-white">
+                        Reset Canvas
+                    </Button>
+                    <Button onClick={processImage} className="bg-green-500 hover:bg-green-600 text-white">
+                        Process Image
+                    </Button>
+                </div>
             </div>
 
-            <div className="absolute bottom-16 left-0 z-10 p-4 space-x-4 flex flex-col md:flex-row items-center">
-                <div className="flex space-x-2 overflow-x-auto">
-                    {['white', 'red', 'green', 'blue', 'yellow', 'purple'].map((clr) => (
-                        <div
-                            key={clr}
-                            onClick={() => selectColor(clr)}
-                            className="w-6 h-6 cursor-pointer"
-                            style={{ backgroundColor: clr, border: color === clr ? '2px solid #fff' : 'none' }}
-                        />
-                    ))}
-                </div>
+            {/* Main Canvas Area */}
+            <div className="flex-1 relative overflow-hidden">
+                <canvas
+                    ref={canvasRef}
+                    className="absolute inset-0 w-full h-full cursor-crosshair"
+                    onMouseDown={startDrawing}
+                    onMouseMove={draw}
+                    onMouseUp={stopDrawing}
+                    onMouseOut={stopDrawing}
+                    onTouchStart={startDrawing}
+                    onTouchMove={draw}
+                    onTouchEnd={stopDrawing}
+                    style={{ touchAction: 'none' }}
+                />
 
-                <div className="flex items-center mt-2 md:mt-0">
-                    <input
-                        type="range"
-                        min="5"
-                        max="100"
-                        value={eraserSize}
-                        onChange={(e) => setEraserSize(e.target.value)}
-                        className="mx-2"
-                    />
-                    <span className="text-white">Eraser Size: {eraserSize}px</span>
-                </div>
-
-                <Button
-                    onClick={() => {
-                        setIsEraserActive(!isEraserActive);
-                    }}
-                    className={isEraserActive ? "bg-yellow-500 text-white" : "bg-gray-700 text-white"}
-                >
-                    {isEraserActive ? "Eraser Active" : "Activate Eraser"}
-                </Button>
-            </div>
-
-            <canvas
-                ref={canvasRef}
-                className="absolute top-0 w-full cursor-crosshair"
-                onMouseDown={startDrawing}
-                onMouseMove={draw}
-                onMouseUp={stopDrawing}
-                onMouseOut={stopDrawing}
-                onTouchStart={startDrawing}
-                onTouchMove={draw}
-                onTouchEnd={stopDrawing}
-                style={{
-                    height: window.innerHeight < 600 ? '400px' : '100vh',
-                    touchAction: 'none'
-                }}
-            />
-
-            {latexExpression && (
-                <Draggable
-                    position={latexPosition}
-                    onStop={handleDragStop}
-                    bounds="parent"
-                >
-                    <div
-                        id="result-container"
-                        className="absolute p-4 bg-white rounded shadow-lg"
-                        style={{
-                            width: Math.min(300, window.innerWidth - 20) + 'px',
-                            maxHeight: Math.min(300, window.innerHeight - 20) + 'px',
-                            overflowY: 'auto',
-                            overflowX: 'hidden',
-                            touchAction: 'auto'
-                        }}
+                {latexExpression && (
+                    <Draggable
+                        position={latexPosition}
+                        onStop={handleDragStop}
+                        bounds="parent"
                     >
-                        <div className="latex-content" style={{ whiteSpace: 'pre-wrap' }}>
-                            {latexExpression}
+                            <div
+                                id="result-container"
+                                className="absolute top-4 right-4 p-4 bg-white rounded-lg shadow-lg border border-gray-300"
+                                style={{
+                                    width: 'min(90vw, 400px)',
+                                    maxHeight: '80vh',
+                                    overflowY: 'auto',
+                                    overflowX: 'hidden',
+                                    touchAction: 'auto',
+                                    fontSize: '1rem',
+                                    lineHeight: '1.4',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.98)'
+                                }}
+                            >
+                                <div className="flex justify-between items-center mb-3 pb-2 border-b border-gray-200">
+                                    <h3 className="text-lg font-semibold text-gray-900">Analysis Results</h3>
+                                    <button 
+                                        onClick={() => setLatexExpression('')}
+                                        className="text-gray-500 hover:text-gray-700 text-xl leading-none"
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                                <div className="text-base p-4 space-y-3">
+                                    {latexExpression.split('\n').map((line, i) => (
+                                        <div key={i} className={`
+                                            ${line.startsWith('•') ? 'pl-4 border-l-4 border-blue-500' : ''}
+                                            ${line.startsWith('Problem:') ? 'font-bold text-lg text-blue-700' : ''}
+                                            ${line.startsWith('Step') ? 'pl-6 text-gray-700' : ''}
+                                            ${line.startsWith('Solution:') ? 'font-bold text-green-600 mt-2' : ''}
+                                            ${line.match(/^\d+\./) ? 'font-medium' : ''}
+                                        `}>
+                                            {line}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                    </Draggable>
+                )}
+            </div>
+
+            {/* Bottom Toolbar */}
+            <div className="bg-gray-800 p-3 flex flex-col md:flex-row items-center justify-between">
+                <div className="flex items-center space-x-4 mb-2 md:mb-0">
+                    {/* Color Picker */}
+                    <div className="flex space-x-2">
+                        {['black', 'white', 'red', 'green', 'blue', 'yellow', 'purple'].map((clr) => (
+                            <div
+                                key={clr}
+                                onClick={() => selectColor(clr)}
+                                className="w-8 h-8 rounded-full cursor-pointer border-2 transition-all"
+                                style={{ 
+                                    backgroundColor: clr, 
+                                    borderColor: color === clr ? '#fff' : 'transparent',
+                                    transform: color === clr ? 'scale(1.1)' : 'scale(1)'
+                                }}
+                            />
+                        ))}
+                    </div>
+
+                    {/* Eraser Controls */}
+                    <div className="flex items-center space-x-3">
+                        <Button
+                            onClick={() => setIsEraserActive(!isEraserActive)}
+                            className={isEraserActive ? "bg-yellow-500 hover:bg-yellow-600 text-white" : "bg-gray-700 hover:bg-gray-600 text-white"}
+                        >
+                            {isEraserActive ? "✏️ Eraser" : "✏️ Pencil"}
+                        </Button>
+                        
+                        <div className="flex items-center">
+                            <input
+                                type="range"
+                                min="5"
+                                max="50"
+                                value={eraserSize}
+                                onChange={(e) => setEraserSize(e.target.value)}
+                                className="w-24 mr-2"
+                            />
+                            <span className="text-white text-sm">Size: {eraserSize}px</span>
                         </div>
                     </div>
-                </Draggable>
-            )}
+                </div>
+            </div>
         </div>
     );
 };
